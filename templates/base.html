@@ -1,0 +1,13 @@
+<html>
+	<head>
+		<!--page_title as a vairable-->
+		<title>{{ page_title }}</title>
+		<link rel="stylesheet" href="{{ static_url("css/style.css") }}" />
+	</head>
+	<body>
+		<div id="container">
+			{% block container %} {% end %}
+		</div>
+	<script src="{{ static_url("js/script.js") }}"></script>
+	</body>
+</html>
