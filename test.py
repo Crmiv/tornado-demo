@@ -11,6 +11,8 @@ import tornado.ioloop
 from tornado import web
 from tornado.options import define, options
 
+#define("port", default=8000, help="run on the given port", type=int)
+#$python server.py --port=port-num
 define("mysql_host", default="127.0.0.1:3306", help="blog database host")
 define("mysql_database", default="Personal", help="blog database name")
 define("mysql_user", default="crmiv", help="blog database user")
@@ -29,6 +31,7 @@ class MainRequestHandler(tornado.web.RequestHandler):
 	def get():
 		#pass parameter from self.render("xxx.html",***)
 		self.render("index.html")
+		#self.get_argument('','')   variable default-value
 	
 	def db(self):
 		return self.application.db
