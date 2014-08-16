@@ -18,11 +18,12 @@ define("mysql_database", default="Personal", help="blog database name")
 define("mysql_user", default="crmiv", help="blog database user")
 define("mysql_password", default="ljn7168396", help="blog database password")
 
-def handle_request(request):
+'''def handle_request(request):
 	message = "hello,you request %s\n" % request.uri
 	request.connection.write("HTTP1.1 200 OK\r\nContent-Length:%d\r\n\r\n%s" % (
 		len(message),message))
 	request.finish()
+'''
 
 class MainRequestHandler(tornado.web.RequestHandler):
 	#render to index.html
@@ -40,7 +41,13 @@ class MainRequestHandler(tornado.web.RequestHandler):
 		user_id = self.get_secure_cookie("user")
 		if not user_id: return None
 		return self.db.get("SELECT * FROM authors WHERE id = %s", int(user_id))
-	
+
+class SqlLoginRequestHandler(tornado.web.RequestHandler):
+	def post(self):
+		#handle login
+		#self.get_argument('')
+
+
 
 class Application(tornado.web.Application):
 	def __init__(self):
@@ -56,6 +63,9 @@ class Application(tornado.web.Application):
 			#cookie_secret="RANDOM_VALUE"
 		)
 		tornado.web.Application.__init__(self,handlers,**settings)
+		self.db = torndb.Connection(
+				host=options.mysql_host, database=options.mysql_database,
+				user=options.mysql_user, 
 
 class AuthLogoutHandler()
 
@@ -64,8 +74,18 @@ class handleSql():
 
 
 if __name__ == '__main__':
+"""
+	Command line formats are what you would expect (``--myoption=myvalue``).
+Config files are just Python files. Global names become options, e.g.::
+	
+	config-file format: 
+	config.py
+		global_name = "value"
+		name = "myname"
+"""
 	tornado.options.parse_command_line()
 	http_server = tornado.httpserver.HTTPServer(Application)
 	http_server.listen(options.port)
 	tornado.ioloop.IOLoop.instance().start()
 
+	
