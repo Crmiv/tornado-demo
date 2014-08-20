@@ -43,6 +43,23 @@ class MainRequestHandler(tornado.web.RequestHandler):
 	#	user_id = self.get_secure_cookie("user")
 	#	if not user_id: return None
 
+class RegisterHandler(MainRequestHandler):
+	def post(self):
+		Id = self.get_argument("CId",None)
+		Password = self.get_argument("CPassword",None)
+		Sex = self.get_argument("CSex",None)
+		_temp = hash(Password)
+		if Id is not None:
+			if Password is not None:
+				if Sex is not None:
+					query_string_register = "SELECT * FROM user WHERE id=%s" % Id
+					result_register = self.db.get(query_string_register)
+					if result_register is None:
+						self.db.
+
+
+
+
 class AuthLogoutHandler(MainRequestHandler):
     def get(self):
         self.clear_cookie("user")
@@ -53,8 +70,8 @@ class AuthLoginHandler(MainRequestHandler):
 	def get(self):
 		Id = self.get_argument("CId",None)
 		Password = self.get_argument("CPassword",None)
-		query_string = "SELECT * FROM user WHERE id=%s" % Id
-		result = self.db.query(query_string)
+		query_string_login = "SELECT * FROM user WHERE id=%s" % Id
+		result = self.db.get(query_string)
 		_temp = hash(Password)
 		if result['Password'] != _temp:
 			#unsuccessful
@@ -66,6 +83,7 @@ class Application(tornado.web.Application):
 	def __init__(self):
 		handlers = [
 				(r"/",MainHandler),
+				(r"/register",RegisterHandler),
 				(r"/login",AuthLoginHandler),
 				(r"/logout",AuthLogoutHandler),
 				]
@@ -100,4 +118,3 @@ Config files are just Python files. Global names become options, e.g.::
 	http_server.listen(options.port)
 	tornado.ioloop.IOLoop.instance().start()
 
-	
