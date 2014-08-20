@@ -13,10 +13,10 @@ from tornado.options import define, options
 
 #define("port", default=8000, help="run on the given port", type=int)
 #$python server.py --port=port-num
-define("mysql_host", default="127.0.0.1:3306", help="blog database host")
-define("mysql_database", default="Personal", help="blog database name")
-define("mysql_user", default="crmiv", help="blog database user")
-define("mysql_password", default="ljn7168396", help="blog database password")
+define("mysql_host", default="127.0.0.1:3306", help="database host")
+define("mysql_database", default="Personal", help="database name")
+define("mysql_user", default="crmiv", help="database user")
+define("mysql_password", default="ljn7168396", help="database password")
 
 '''def handle_request(request):
 	message = "hello,you request %s\n" % request.uri
@@ -29,49 +29,61 @@ class MainRequestHandler(tornado.web.RequestHandler):
 	#render to index.html
 	#Subclass RequestHandler,use get method
 	#SUPPORTED_METHOD { }
-	def get():
+    #attribute
+	@property
+    def db(self):
+        return self.application.db
+	def get_current_user(self,user):
+		return self.get_secure_cookie(user)
+	#def get():
 		#pass parameter from self.render("xxx.html",***)
-		self.render("index.html")
-		#self.get_argument('','')   variable default-value
-	
-	def db(self):
-		return self.application.db
-	
-	def get_current_user(self):
-		user_id = self.get_secure_cookie("user")
-		if not user_id: return None
-		return self.db.get("SELECT * FROM authors WHERE id = %s", int(user_id))
+	#	self.render("index.html")
+		#self.get_argument('','')   variable default-value	
+	#def get_current_user(self):
+	#	user_id = self.get_secure_cookie("user")
+	#	if not user_id: return None
 
-class SqlLoginRequestHandler(tornado.web.RequestHandler):
-	def post(self):
-		#handle login
-		#self.get_argument('')
+class AuthLogoutHandler(MainRequestHandler):
+    def get(self):
+        self.clear_cookie("user")
+        #self.redirect(self.get_argument("next", "/"))
 
-
+class AuthLoginHandler(MainRequestHandler):
+	@tornado.web.asynchronous
+	def get(self):
+		Id = self.get_argument("CId",None)
+		Password = self.get_argument("CPassword",None)
+		query_string = "SELECT * FROM user WHERE id=%s" % Id
+		result = self.db.query(query_string)
+		_temp = hash(Password)
+		if result['Password'] != _temp:
+			#unsuccessful
+			raise tornado.web.HTTPError(401)
+		else:
+			self.set_secure_cookie(Id,Id)
 
 class Application(tornado.web.Application):
 	def __init__(self):
 		handlers = [
 				(r"/",MainHandler),
+				(r"/login",AuthLoginHandler),
+				(r"/logout",AuthLogoutHandler),
 				]
 		settings = dict(
+			#picture file
 			"static_path" : os.path.join(os.path.dirname(__file__), "static"),
 			"template_path" : os.path.join(os.path.dirname(__file__), "templates"),
 			"gzip" : True,
 			"debug" : True,
+			"login_url": "/login"，
 			#ui_modules={"":};
-			#cookie_secret="RANDOM_VALUE"
+			cookie_secret="bZJc2sWbQLKos6GkHn/VB9oX6GkHn/VB9oXwQt"
 		)
 		tornado.web.Application.__init__(self,handlers,**settings)
 		self.db = torndb.Connection(
 				host=options.mysql_host, database=options.mysql_database,
-				user=options.mysql_user, 
-
-class AuthLogoutHandler()
-
-class handleSql():
-	def __init__(self):
-
+				user=options.mysql_user, password=options.mysql_password
+		)
 
 if __name__ == '__main__':
 """
