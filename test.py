@@ -1,11 +1,14 @@
 #!/bin/env python
+#-*- encoding:utf-8 -*-
+#support on 
 
-#support python 3.X
-from __future__ import absolute_import, withj_statement
-
-import os
-import tornado
+import os.path
+import Image
+import time
+import random
+import tempfile
 import torndb
+import tornado
 import tornado.httpserver
 import tornado.ioloop
 from tornado import web
@@ -13,26 +16,46 @@ from tornado.options import define, options
 
 #define("port", default=8000, help="run on the given port", type=int)
 #$python server.py --port=port-num
+define("port",default=8888,help="port",type=int)
 define("mysql_host", default="127.0.0.1:3306", help="database host")
 define("mysql_database", default="Personal", help="database name")
-define("mysql_user", default="crmiv", help="database user")
-define("mysql_password", default="ljn7168396", help="database password")
+define("mysql_user", default="root", help="database user")
+define("mysql_password", default="", help="database password")
+define("picrootpath",default="",help="store picture")
+define("tempdir",default="",help="create temporary file in it")
 
-'''def handle_request(request):
-	message = "hello,you request %s\n" % request.uri
-	request.connection.write("HTTP1.1 200 OK\r\nContent-Length:%d\r\n\r\n%s" % (
-		len(message),message))
-	request.finish()
+#define("storedvair",default={},help="store vair",type=dict)
+
+#transmit parameter to subclass in initialize
+
 '''
+  user : already login
+  {
+  	{user{id1:True, id2:True...}}
+	
+	}
+'''
+storedvair = {}
+
+#def handle_request(request):
+#	message = "hello,you request %s\n" % request.uri
+#	request.connection.write("HTTP1.1 200 OK\r\nContent-Length:%d\r\n\r\n%s" % (
+#		len(message),message))
+#	request.finish()
+
 
 class MainRequestHandler(tornado.web.RequestHandler):
 	#render to index.html
 	#Subclass RequestHandler,use get method
 	#SUPPORTED_METHOD { }
     #attribute
+
+	'''use trans parameter,subclass inherit from it'''
+	self.storedvair = storedvair
 	@property
-    def db(self):
-        return self.application.db
+	def db(self):
+		return self.application.db
+	
 	def get_current_user(self,user):
 		return self.get_secure_cookie(user)
 	#def get():
@@ -55,15 +78,18 @@ class RegisterHandler(MainRequestHandler):
 					query_string_register = "SELECT * FROM user WHERE id=%s" % Id
 					result_register = self.db.get(query_string_register)
 					if result_register is None:
-						self.db.
-
-
-
+						create_account_string = "INSERT INTO user(id,password,sex)values(%s,%s,%s)" % (Id,_temp,Sex)
+						self.db.execute(create_account_string)
+						
 
 class AuthLogoutHandler(MainRequestHandler):
     def get(self):
-        self.clear_cookie("user")
+		self.clear_cookie("user")
         #self.redirect(self.get_argument("next", "/"))
+		
+		#???
+		#???
+		self.db.close()
 
 class AuthLoginHandler(MainRequestHandler):
 	@tornado.web.asynchronous
@@ -71,13 +97,74 @@ class AuthLoginHandler(MainRequestHandler):
 		Id = self.get_argument("CId",None)
 		Password = self.get_argument("CPassword",None)
 		query_string_login = "SELECT * FROM user WHERE id=%s" % Id
-		result = self.db.get(query_string)
+		result = self.db.get(query_string_login)
 		_temp = hash(Password)
-		if result['Password'] != _temp:
+		if result['password'] != _temp:
 			#unsuccessful
 			raise tornado.web.HTTPError(401)
 		else:
 			self.set_secure_cookie(Id,Id)
+
+class UploadFileHandler(MainRequestHandler):
+	def get(self):
+		pass
+	def post(self):
+		'''
+		simulate post-table
+			<form action='file' enctype="multipart/form-data" method='post'>
+			    <input type='file' name='file'/><br/>
+				<input type='submit' value='submit'/>
+			</form>
+		'''
+		#user file
+		if self.request.files == {} or 'file' not in self.request.files:
+			#no-pic to upload
+			return
+		image_list = ['image/gif','image/jpeg',
+						'image/pjpeg','image/png','image/bmp']
+		upload__path = self.current_user_root_path
+		file_metas = self.request.files['file']
+		send_file = file_metas[0]
+		if send_file['content_type'] not in image_list:
+			#not match format
+			#self.write("please use gif or png or bmp or..format")
+			return
+		if len(send_file['body']) > 4*1024*1024:
+			#self.write("please transmit 4MB and below it size file")
+			return
+		#if test image length*width
+		temp_file = tempfile.NamedTemporaryFile(delete=True)
+		temp_file.write(send_file['body'])
+		temp_file.seek(0)
+		try:
+			image_used = Image.open(temp_file.name)
+		except IOError, error:
+			logging.info(error)
+			logging.info('+'*30 + '\n')
+			logging.info(self.request.headers)
+			temp_file.close()
+			#self.write("Error illegal image")
+			return
+		image_format = send_file['filename'].split('.').pop().lower()
+		tempname = send_file['filename'].split()[0]
+		image_used.save(upload__path + tempname)
+		temp_file.close()
+		#self.write("Upload Successful")
+		return
+
+
+class PicUploadHandler(MainRequestHandler):
+	def post(self):
+		#if get an argument as photograph
+		album = self.get_argument("Calbum",None)
+		Photonm = self.get_argument("CPhotonm",random.randint(1,1000000000))
+	def createPhotograph(self, name):
+		'''define("picrootpath",default=".../",help="store picture")'''
+		options.picrootpath + name
+
+
+
+		
 
 class Application(tornado.web.Application):
 	def __init__(self):
@@ -86,15 +173,13 @@ class Application(tornado.web.Application):
 				(r"/register",RegisterHandler),
 				(r"/login",AuthLoginHandler),
 				(r"/logout",AuthLogoutHandler),
+				(r"/picup",PicUploadHandler),
 				]
 		settings = dict(
-			#picture file
-			"static_path" : os.path.join(os.path.dirname(__file__), "static"),
-			"template_path" : os.path.join(os.path.dirname(__file__), "templates"),
-			"gzip" : True,
-			"debug" : True,
-			"login_url": "/login"，
-			#ui_modules={"":};
+			static_path=os.path.join(os.path.dirname(__file__), "static"),
+			template_path=os.path.join(os.path.dirname(__file__), "templates"),
+			gzip=True,
+			debug=True,
 			cookie_secret="bZJc2sWbQLKos6GkHn/VB9oX6GkHn/VB9oXwQt"
 		)
 		tornado.web.Application.__init__(self,handlers,**settings)
@@ -103,8 +188,16 @@ class Application(tornado.web.Application):
 				user=options.mysql_user, password=options.mysql_password
 		)
 
+def searchDir(path, filename):
+	for file_tup in walk(path):
+		for file_ in file_tup[2]:
+			if file_ == filename:
+				return True
+			else:
+				return False
+
 if __name__ == '__main__':
-"""
+	"""
 	Command line formats are what you would expect (``--myoption=myvalue``).
 Config files are just Python files. Global names become options, e.g.::
 	
@@ -112,7 +205,7 @@ Config files are just Python files. Global names become options, e.g.::
 	config.py
 		global_name = "value"
 		name = "myname"
-"""
+	"""
 	tornado.options.parse_command_line()
 	http_server = tornado.httpserver.HTTPServer(Application)
 	http_server.listen(options.port)
