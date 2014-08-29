@@ -13,6 +13,7 @@ import tornado.httpserver
 import tornado.ioloop
 from tornado import web
 from tornado.options import define, options
+from tornado import escape 
 
 #define("port", default=8000, help="run on the given port", type=int)
 #$python server.py --port=port-num
@@ -35,7 +36,10 @@ define("tempdir",default="",help="create temporary file in it")
 	
 	}
 '''
-storedvair = {}
+_storedvair = {}
+
+#standard response format
+_format = {}
 
 #def handle_request(request):
 #	message = "hello,you request %s\n" % request.uri
@@ -51,7 +55,8 @@ class MainRequestHandler(tornado.web.RequestHandler):
     #attribute
 
 	'''use trans parameter,subclass inherit from it'''
-	self.storedvair = storedvair
+	self._storedvair = _storedvair
+	self._format = _format
 	@property
 	def db(self):
 		return self.application.db
@@ -65,26 +70,52 @@ class MainRequestHandler(tornado.web.RequestHandler):
 	#def get_current_user(self):
 	#	user_id = self.get_secure_cookie("user")
 	#	if not user_id: return None
+	def set_response_json(self, key, value):
+		if key is None or value is None:
+			return
+		self._format[key] = value
 
-class RegisterHandler(MainRequestHandler):
+	def	get_response_json(self):
+		return escape.json_encode(_format)
+
+	def del_response_json(self, key):
+		del _format[key]
+
+	def clear_response_json(self):
+		_format.clear()
+
+class MaintoHandler(MainRequestHandler):
+	def set_default_headers(self):
+		#use Auth-temp as user identify
+		add_header("Auth-temp","None")
+
+
+
+class RegisterHandler(MaintoHandler):
 	def post(self):
+		#client
 		Id = self.get_argument("CId",None)
 		Password = self.get_argument("CPassword",None)
 		Sex = self.get_argument("CSex",None)
 		_temp = hash(Password)
-		if Id is not None:
-			if Password is not None:
-				if Sex is not None:
-					query_string_register = "SELECT * FROM user WHERE id=%s" % Id
-					result_register = self.db.get(query_string_register)
-					if result_register is None:
-						create_account_string = "INSERT INTO user(id,password,sex)values(%s,%s,%s)" % (Id,_temp,Sex)
-						self.db.execute(create_account_string)
-						
+		if Id is not None and Password is not None and Sex is not None:
+			query_string_register = "SELECT * FROM user WHERE id=%s" % Id
+			result_register = self.db.get(query_string_register)
+			if result_register is None:
+				create_account_string = "INSERT INTO user(id,password,sex)values(%s,%s,%s)" % (Id,_temp,Sex)
+				self.db.execute(create_account_string)
+				self.write("Successful!")
+		else:
+			self.write("You can't register!")
 
 class AuthLogoutHandler(MainRequestHandler):
     def get(self):
-		self.clear_cookie("user")
+		#!read HTTP request-header Auth-temp
+		_temp_authnum = None
+		try:	
+			del self._storedvair['login'][_temp_authnum]
+		
+		#self.clear_cookie("user")
         #self.redirect(self.get_argument("next", "/"))
 		
 		#???
@@ -92,6 +123,7 @@ class AuthLogoutHandler(MainRequestHandler):
 		self.db.close()
 
 class AuthLoginHandler(MainRequestHandler):
+	
 	@tornado.web.asynchronous
 	def get(self):
 		Id = self.get_argument("CId",None)
@@ -153,16 +185,31 @@ class UploadFileHandler(MainRequestHandler):
 		return
 
 
-class PicUploadHandler(MainRequestHandler):
+class PicUploadHandler(UploadFileHandler):
+	def get(self):
+		pass
+	
 	def post(self):
 		#if get an argument as photograph
 		album = self.get_argument("Calbum",None)
 		Photonm = self.get_argument("CPhotonm",random.randint(1,1000000000))
+	
 	def createPhotograph(self, name):
 		'''define("picrootpath",default=".../",help="store picture")'''
 		options.picrootpath + name
+	
+	def delete(self):
+		pass
 
+class VidUploadHandler(UploadFileHandler):
+	def get(self):
+		pass
+	
+	def post(self):
+		pass
 
+	def delete(self):
+		pass
 
 		
 
