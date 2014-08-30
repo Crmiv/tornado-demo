@@ -108,6 +108,25 @@ class RegisterHandler(MaintoHandler):
 		else:
 			self.write("You can't register!")
 
+	def put(self):
+		'''CNN_password is rewrite it'''
+		_auth_list = map(lambda x : self.get_argument(x),['C_Id','C_Password','CN_Password','CNN_Password'])
+		query_string_match_passwd = "SELECT * FROM user WHERE id=%s" % _auth_list[0]
+		result = self.db.get(query_string_login)
+		if _auth_list[1] != result:
+			self.write("Old Passwd can't match!")
+			return
+		else:
+			if _auth_list[2] == _auth_list[3]:
+				edit_user_passwd = "UPDATE user SET password = %s WHERE id = %s" % (_auth_list[2],_auth_list[0])
+				self.db.execute(edit_user_passwd)
+				self.write("Successful edit password")
+			else:
+				self.write("Please use the same passwd!")
+				return
+
+
+
 class AuthLogoutHandler(MainRequestHandler):
     def get(self):
 		#!read HTTP request-header Auth-temp
@@ -123,11 +142,12 @@ class AuthLogoutHandler(MainRequestHandler):
 		self.db.close()
 
 class AuthLoginHandler(MainRequestHandler):
-	
 	@tornado.web.asynchronous
 	def get(self):
+		#from URL 
 		Id = self.get_argument("CId",None)
 		Password = self.get_argument("CPassword",None)
+
 		query_string_login = "SELECT * FROM user WHERE id=%s" % Id
 		result = self.db.get(query_string_login)
 		_temp = hash(Password)
@@ -136,6 +156,10 @@ class AuthLoginHandler(MainRequestHandler):
 			raise tornado.web.HTTPError(401)
 		else:
 			self.set_secure_cookie(Id,Id)
+	def post(self):
+		Id = self.get_argument("CId",None)
+		Password = self.get_argument("CPassword",None)
+
 
 class UploadFileHandler(MainRequestHandler):
 	def get(self):
