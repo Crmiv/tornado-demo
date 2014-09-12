@@ -4,6 +4,8 @@
 
 import os.path
 import Image
+#hash
+import hashlib
 import time
 import random
 import tempfile
@@ -97,19 +99,18 @@ class RegisterHandler(MaintoHandler):
 		Id = self.get_argument("CId",None)
 		Password = self.get_argument("CPassword",None)
 		Sex = self.get_argument("CSex",None)
-		_temp = hash(Password)
 		if Id is not None and Password is not None and Sex is not None:
 			query_string_register = "SELECT * FROM user WHERE id=%s" % Id
 			result_register = self.db.get(query_string_register)
 			if result_register is None:
-				create_account_string = "INSERT INTO user(id,password,sex)values(%s,%s,%s)" % (Id,_temp,Sex)
+				create_account_string = "INSERT INTO user(id,password,sex)values(%s,%s,%s)" % (Id,Password,Sex)
 				self.db.execute(create_account_string)
 				self.write("Successful!")
 		else:
 			self.write("You can't register!")
 
 	def put(self):
-		'''CNN_password is rewrite it'''
+		'''CNN_password is rewrite it,Cpsword is old password,cn & cnn is new password'''
 		_auth_list = map(lambda x : self.get_argument(x),['C_Id','C_Password','CN_Password','CNN_Password'])
 		query_string_match_passwd = "SELECT * FROM user WHERE id=%s" % _auth_list[0]
 		result = self.db.get(query_string_login)
