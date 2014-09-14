@@ -4,7 +4,6 @@
 
 import os.path
 import Image
-#hash
 import hashlib
 import time
 import random
@@ -34,9 +33,9 @@ define("tempdir",default="",help="create temporary file in it")
 '''
   user : already login
   {
-  	{user{id1:True, id2:True...}}
-	
-	}
+{user{id1:True, id2:True...}}
+
+    }
 '''
 _storedvair = {}
 
@@ -44,35 +43,35 @@ _storedvair = {}
 _format = {}
 
 #def handle_request(request):
-#	message = "hello,you request %s\n" % request.uri
-#	request.connection.write("HTTP1.1 200 OK\r\nContent-Length:%d\r\n\r\n%s" % (
-#		len(message),message))
-#	request.finish()
+#    message = "hello,you request %s\n" % request.uri
+#    request.connection.write("HTTP1.1 200 OK\r\nContent-Length:%d\r\n\r\n%s" % (
+#    len(message),message))
+#    request.finish()
 
 
 class MainRequestHandler(tornado.web.RequestHandler):
-	#render to index.html
-	#Subclass RequestHandler,use get method
-	#SUPPORTED_METHOD { }
+    #render to index.html
+    #Subclass RequestHandler,use get method
+    #SUPPORTED_METHOD { }
     #attribute
 
-	'''use trans parameter,subclass inherit from it'''
-	self._storedvair = _storedvair
-	self._format = _format
-	@property
-	def db(self):
-		return self.application.db
-	
-	def get_current_user(self,user):
-		return self.get_secure_cookie(user)
-	#def get():
-		#pass parameter from self.render("xxx.html",***)
-	#	self.render("index.html")
-		#self.get_argument('','')   variable default-value	
-	#def get_current_user(self):
-	#	user_id = self.get_secure_cookie("user")
-	#	if not user_id: return None
-	def set_response_json(self, key, value):
+    '''use trans parameter,subclass inherit from it'''
+    self._storedvair = _storedvair
+    self._format = _format
+    @property
+    def db(self):
+        return self.application.db
+
+    def get_current_user(self,user):
+        return self.get_secure_cookie(user)
+    #def get():
+        #pass parameter from self.render("xxx.html",***)
+    #self.render("index.html")
+        #self.get_argument('','')   variable default-value	
+    #def get_current_user(self):
+    #    user_id = self.get_secure_cookie("user")
+    #    if not user_id: return None
+    def set_response_json(self, key, value):
 		if key is None or value is None:
 			return
 		self._format[key] = value
@@ -87,10 +86,15 @@ class MainRequestHandler(tornado.web.RequestHandler):
 		_format.clear()
 
 class MaintoHandler(MainRequestHandler):
-	def set_default_headers(self):
-		#use Auth-temp as user identify
-		add_header("Auth-temp","None")
+    def set_default_headers(self):
+        #use Auth-temp as user identify
+        add_header("Auth-temp","None")
 
+    def _test_timeout(self,_id):
+        #timeout = 600s
+        _temp_time = int(time.time()) - _storedvair[_id][1]
+        if _temp_time >= 600:
+            del _storedvair[_id]
 
 
 class RegisterHandler(MaintoHandler):
@@ -142,24 +146,28 @@ class AuthLogoutHandler(MainRequestHandler):
 		#???
 		self.db.close()
 
-class AuthLoginHandler(MainRequestHandler):
-	@tornado.web.asynchronous
-	def get(self):
-		#from URL 
-		Id = self.get_argument("CId",None)
-		Password = self.get_argument("CPassword",None)
+class AuthLoginHandler(MaintoHandler):
+    @tornado.web.asynchronous
+    def post(self):
+        #from URL 
+        Id = self.get_argument("CId",None)
+        Password = self.get_argument("CPassword",None)
 
-		query_string_login = "SELECT * FROM user WHERE id=%s" % Id
-		result = self.db.get(query_string_login)
-		_temp = hash(Password)
-		if result['password'] != _temp:
-			#unsuccessful
-			raise tornado.web.HTTPError(401)
-		else:
-			self.set_secure_cookie(Id,Id)
-	def post(self):
-		Id = self.get_argument("CId",None)
-		Password = self.get_argument("CPassword",None)
+        query_string_login = "SELECT * FROM user WHERE id=%s" % Id
+        result = self.db.get(query_string_login)
+        if result['password'] != Password:
+            #unsuccessful
+            raise tornado.web.HTTPError(401)
+        else:
+            #self.set_secure_cookie(Id,Id)
+            #use Auth-temp as user identify
+            _temp = hashlib.md5(Password)
+            self.set_header("Auth-temp",_temp.hexdigest())
+            _storedvair[Id] = (_temp.hexdigest(),int(time.time())
+
+    #def post(self):
+    #    Id = self.get_argument("CId",None)
+    #   Password = self.get_argument("CPassword",None)
 
 
 class UploadFileHandler(MainRequestHandler):
